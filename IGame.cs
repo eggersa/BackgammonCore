@@ -50,8 +50,8 @@ namespace BackgammonCore
         bool IsTerminal();
 
         /// <summary>
-        /// Returns the evaluated value related to the max player for the current state. T
-        /// he evaluation is exact for terminal nodes. For other nodes, the value is statically
+        /// Returns the evaluated value related to the max player for the current state. 
+        /// The evaluation is exact for terminal nodes. For other nodes, the value is statically
         /// evaluated using a heuristic approcimation.
         /// </summary>
         /// <returns></returns>
