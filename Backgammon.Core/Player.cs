@@ -6,13 +6,19 @@ namespace Backgammon.Game
     {
         public Player()
         {
+            Board = new short[24];
             Board[23] = 2;
             Board[12] = 5;
             Board[7] = 3;
             Board[5] = 5;
         }
+
+        public Player(short[] board)
+        {
+            Board = board;
+        }
         
-        public short[] Board { get; private set; } = new short[24];
+        public short[] Board { get; private set; } 
 
         public short Bar { get; set; }
 
@@ -51,6 +57,15 @@ namespace Backgammon.Game
                 sum += Board[i];
             }
             return sum + Bar;
+        }
+
+        /// <summary>
+        /// Checks if the player is finished.
+        /// </summary>
+        /// <returns>True if the player has no checkers left; otherwise false.</returns>
+        public bool IsFinished()
+        {
+            return GetRemainingCheckers() + Bar == 0;
         }
 
         /// <summary>

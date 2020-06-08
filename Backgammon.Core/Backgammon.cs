@@ -14,12 +14,9 @@ namespace Backgammon.Game
     {
         private const int NumPoints = 24;
 
-        // Game state
-        //
         private bool maxToMove = true;
-        private short[] maxPlayer, minPlayer;
-        private short maxPlayerBar, minPlayerBar;
 
+        private readonly Player maxPlayer, minPlayer;
         public static readonly Tuple<short, short>[] DicePairs;
 
         static Backgammon()
@@ -38,7 +35,7 @@ namespace Backgammon.Game
             }
         }
 
-        private Backgammon(short[] maxPlayer, short[] minPlayer, bool maxToMove, Ply move)
+        private Backgammon(Player maxPlayer, Player minPlayer, bool maxToMove, Ply move)
         {
             this.maxPlayer = maxPlayer;
             this.minPlayer = minPlayer;
@@ -61,17 +58,7 @@ namespace Backgammon.Game
         public bool IsTerminal()
         {
             var player = maxToMove ? maxPlayer : minPlayer;
-
-            // Checks if the player has no more checkers on the board
-            for (int i = 0; i < NumPoints; i++)
-            {
-                if (player[i] > 0)
-                {
-                    return false;
-                }
-            }
-
-            return true;
+            return player.IsFinished();
         }
 
         public double Utility()
@@ -86,14 +73,7 @@ namespace Backgammon.Game
         /// </summary>
         public static Backgammon Start()
         {
-            short[] player = new short[NumPoints];
-
-            player[23] = 2;
-            player[12] = 5;
-            player[7] = 3;
-            player[5] = 5;
-
-            return new Backgammon(player, (short[])player.Clone(), true, null);
+            return new Backgammon(new Player(), new Player(), true, null);
         }
 
         /// <summary>
@@ -104,8 +84,8 @@ namespace Backgammon.Game
         public IEnumerable<Backgammon> Expand(Tuple<short, short> roll)
         {
             short diceOne = roll.Item1, diceTwo = roll.Item2;
-            short[] player = maxToMove ? maxPlayer : minPlayer,
-                    opponent = maxToMove ? minPlayer : maxPlayer;
+            short[] player = maxToMove ? maxPlayer.Board : minPlayer.Board,
+                    opponent = maxToMove ? minPlayer.Board : maxPlayer.Board;
 
             // Holds all our successors
             var successors = new List<Backgammon>(100);
@@ -138,11 +118,11 @@ namespace Backgammon.Game
 
                         if (MaxToMove())
                         {
-                            successors.Add(new Backgammon(playerAfterSecondMove, opponent, false, ply));
+                            successors.Add(new Backgammon(new Player(playerAfterSecondMove), new Player(opponent), false, ply));
                         }
                         else
                         {
-                            successors.Add(new Backgammon(opponent, playerAfterSecondMove, true, ply));
+                            successors.Add(new Backgammon(new Player(opponent), new Player(playerAfterSecondMove), true, ply));
                         }
 
                         // successors.Last().VerifyState();
@@ -208,9 +188,9 @@ namespace Backgammon.Game
             for (int i = 0; i < NumPoints; i++)
             {
                 // Return false if a point is occupied by both players.
-                if (maxPlayer[i] > 0 && minPlayer[23 - i] > 0)
+                if (maxPlayer.Board[i] > 0 && minPlayer.Board[23 - i] > 0)
                 {
-                    var rev = minPlayer.Reverse();
+                    var rev = minPlayer.Board.Reverse();
 
                     Debug.WriteLine($"Invalid move: {LastMove}");
                     Debug.WriteLine(string.Join(' ', maxPlayer));
