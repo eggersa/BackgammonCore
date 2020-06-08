@@ -13,9 +13,12 @@ namespace Backgammon.Game
     public class Backgammon
     {
         private const int NumPoints = 24;
-        private bool maxToMove = true;
 
-        public short[] maxPlayer, minPlayer;
+        // Game state
+        //
+        private bool maxToMove = true;
+        private short[] maxPlayer, minPlayer;
+        private short maxPlayerBar, minPlayerBar;
 
         public static readonly Tuple<short, short>[] DicePairs;
 
@@ -100,8 +103,6 @@ namespace Backgammon.Game
         /// <param name="diceTwo">Second dice value.</param>
         public IEnumerable<Backgammon> Expand(Tuple<short, short> roll)
         {
-            Debug.WriteLine(string.Join(' ', maxPlayer));
-
             short diceOne = roll.Item1, diceTwo = roll.Item2;
             short[] player = maxToMove ? maxPlayer : minPlayer,
                     opponent = maxToMove ? minPlayer : maxPlayer;
@@ -115,10 +116,20 @@ namespace Backgammon.Game
             //var perror = new Ply(new Move(9, 2), new Move(5, 4));
             foreach (var firstCheckerToMove in FindOccupiedPoints(player))
             {
+                if (GetNumOpponentCheckersOnTarget(opponent, firstCheckerToMove, diceOne) > 0)
+                {
+                    continue;
+                }
+
                 short[] playerAfterFirstMove = MoveChecker(player, firstCheckerToMove, diceOne);
 
                 foreach (var secondCheckerToMove in FindOccupiedPoints(playerAfterFirstMove))
                 {
+                    if (GetNumOpponentCheckersOnTarget(opponent, secondCheckerToMove, diceTwo) > 0)
+                    {
+                        continue;
+                    }
+
                     var ply = new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo));
 
                     if (expansion.Add(ply))
@@ -134,7 +145,7 @@ namespace Backgammon.Game
                             successors.Add(new Backgammon(opponent, playerAfterSecondMove, true, ply));
                         }
 
-                        successors.Last().VerifyState();
+                        // successors.Last().VerifyState();
                     }
                 }
             }
@@ -175,6 +186,16 @@ namespace Backgammon.Game
             }
 
             return ArrayHelper.FastArrayCopy(occupied, index);
+        }
+
+        private short GetNumOpponentCheckersOnTarget(short[] opponent, short playerIndex, short pips)
+        {
+            if(playerIndex - pips < 0)
+            {
+                return 0;
+            }
+
+            return opponent[23 - (playerIndex - pips)]; // opponent is reversed
         }
 
         /// <summary>
