@@ -1,18 +1,23 @@
 ﻿using System;
 
-namespace BackgammonCore
+namespace Backgammon.Game
 {
     /// <summary>
     /// Provides optimized helper methods for operations on an Int16 (short) array.
     /// </summary>
     public static class ArrayHelper
     {
-        // https://stackoverflow.com/questions/23248872/fast-array-copy-in-c-sharp
         public static short[] FastArrayCopy(short[] source)
         {
-            var copy = new short[source.Length];
-            Buffer.BlockCopy(source, 0, copy, 0, source.Length);
-            return copy;
+            return FastArrayCopy(source, source.Length);
+        }
+
+        // https://stackoverflow.com/questions/23248872/fast-array-copy-in-c-sharp
+        public static short[] FastArrayCopy(short[] source, int length)
+        {
+            var destination = new short[length];
+            Buffer.BlockCopy(source, 0, destination, 0, length * sizeof(short));
+            return destination;
         }
 
         // https://stackoverflow.com/questions/457453/remove-element-of-a-regular-array

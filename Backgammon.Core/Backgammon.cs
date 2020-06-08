@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 
-namespace BackgammonCore
+namespace Backgammon.Game
 {
     /// <summary>
     /// The object of the game is move all your checkers into your own home board and then bear them off.
@@ -35,7 +35,7 @@ namespace BackgammonCore
             }
         }
 
-        private Backgammon(short[] maxPlayer, short[] minPlayer, bool maxToMove, MoveGroup move)
+        private Backgammon(short[] maxPlayer, short[] minPlayer, bool maxToMove, Ply move)
         {
             this.maxPlayer = maxPlayer;
             this.minPlayer = minPlayer;
@@ -43,7 +43,7 @@ namespace BackgammonCore
             LastMove = move;
         }
 
-        public MoveGroup LastMove { get; private set; }
+        public Ply LastMove { get; private set; }
 
         public bool MaxToMove()
         {
@@ -90,7 +90,7 @@ namespace BackgammonCore
             player[7] = 3;
             player[5] = 5;
 
-            return new Backgammon(player, (short[])player.Clone(), true);
+            return new Backgammon(player, (short[])player.Clone(), true, null);
         }
 
         /// <summary>
@@ -98,84 +98,83 @@ namespace BackgammonCore
         /// </summary>
         /// <param name="diceOne">First dice value.</param>
         /// <param name="diceTwo">Second dice value.</param>
-        public IEnumerable<Backgammon> Expand(short diceOne, short diceTwo)
+        public IEnumerable<Backgammon> Expand(Tuple<short, short> roll)
         {
-            short[] player = maxToMove ? maxPlayer : minPlayer;
-            short[] opponent = maxToMove ? minPlayer : maxPlayer;
+            Debug.WriteLine(string.Join(' ', maxPlayer));
 
-            // Holds the index for each checker on a point.
-            // There is a maximum of 15 checkers for each player.
-            var checkersList = new List<short>(15);
-            for (short point = 0; point < NumPoints; point++)
-            {
-                int numCheckersOnPoint = player[point];
+            short diceOne = roll.Item1, diceTwo = roll.Item2;
+            short[] player = maxToMove ? maxPlayer : minPlayer,
+                    opponent = maxToMove ? minPlayer : maxPlayer;
 
-                // Continue to next point if no checker is at the current point
-                if (numCheckersOnPoint == 0)
-                {
-                    continue;
-                }
-
-                // For each checker on the current point, store its index
-                for (int k = 0; k < numCheckersOnPoint; k++)
-                {
-                    checkersList.Add(point);
-                }
-            }
-
-            // Use array instead of list for better performance.
-            var checkers = checkersList.ToArray();
-            
             // Holds all our successors
-            var successors = new List<Backgammon>(300);
+            var successors = new List<Backgammon>(100);
 
-            // Iterate over each possible combination of two checkers.
-            for (int i = 0; i < checkers.Length; i++)
+            // Keep track of plies to ignore duplicates by means of different move order
+            var expansion = new HashSet<Ply>();
+
+            //var perror = new Ply(new Move(9, 2), new Move(5, 4));
+            foreach (var firstCheckerToMove in FindOccupiedPoints(player))
             {
-                for (int j = 0; j < checkers.Length; j++)
+                short[] playerAfterFirstMove = MoveChecker(player, firstCheckerToMove, diceOne);
+
+                foreach (var secondCheckerToMove in FindOccupiedPoints(playerAfterFirstMove))
                 {
-                    // Each i and j reference a checker inside the checkers array (c)
+                    var ply = new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo));
 
-                    var playerCopy = ArrayHelper.FastArrayCopy(player);
-                    var checkersCopy = ArrayHelper.FastArrayCopy(checkers);
-                    var moveGroup = new MoveGroup();
-                    moveGroup.AddMove(checkersCopy[i], diceOne);
-                    MoveChecker(diceOne, i, playerCopy, ref checkersCopy); // Move first checker
-                    moveGroup.AddMove(checkersCopy[j], diceTwo);
-                    MoveChecker(diceTwo, j, playerCopy, ref checkersCopy); // Move second checker
-
-                    if (MaxToMove())
+                    if (expansion.Add(ply))
                     {
-                        successors.Add(new Backgammon(playerCopy, opponent, false, moveGroup));
-                    }
-                    else
-                    {
-                        successors.Add(new Backgammon(opponent, playerCopy, true, moveGroup));
-                    }
+                        short[] playerAfterSecondMove = MoveChecker(playerAfterFirstMove, secondCheckerToMove, diceTwo);
 
-                    successors.Last().VerifyState();
+                        if (MaxToMove())
+                        {
+                            successors.Add(new Backgammon(playerAfterSecondMove, opponent, false, ply));
+                        }
+                        else
+                        {
+                            successors.Add(new Backgammon(opponent, playerAfterSecondMove, true, ply));
+                        }
+
+                        successors.Last().VerifyState();
+                    }
                 }
             }
 
             return successors;
         }
 
-        private static void MoveChecker(short pips, int checker, short[] player, ref short[] checkers)
+        /// <summary>
+        /// Moves a checker forward by the specified distance (pips).
+        /// </summary>
+        /// <param name="player">Array holding the checkers.</param>
+        /// <param name="checkerIndex">Index of checker to move.</param>
+        /// <param name="pips">Difference in pips between source and target point.</param>
+        /// <returns>A new checkers array with the move applied.</returns>
+        private static short[] MoveChecker(short[] player, short checkerIndex, short pips)
         {
-            player[checkers[checker]]--; // remove checker from source point
-            checkers[checker] -= pips; // update new index of checker
+            var playerCopy = ArrayHelper.FastArrayCopy(player);
 
-            // If new position is outside board...
-            if (checkers[checker] < 0)
+            playerCopy[checkerIndex]--; // remove checker from source point
+            if (checkerIndex - pips > 0) // check for bear-off
             {
-                // ... then bear off.
-                checkers = ArrayHelper.RemoveAt(checkers, checker);
+                playerCopy[checkerIndex - pips]++; // put checker on new point (left to right!)
             }
-            else
+
+            return playerCopy;
+        }
+
+        private short[] FindOccupiedPoints(short[] player)
+        {
+            int index = 0;
+            short[] occupied = new short[15];
+            for (short i = 0; i < player.Length; i++)
             {
-                // ... otherwise place checker at new position
-                player[checkers[checker]]++;
+                if (player[i] > 0)
+                {
+                    occupied[index++] = i;
+                }
             }
+
+            return ArrayHelper.FastArrayCopy(occupied, index);
         }
 
         /// <summary>
@@ -190,7 +189,11 @@ namespace BackgammonCore
                 // Return false if a point is occupied by both players.
                 if (maxPlayer[i] > 0 && minPlayer[23 - i] > 0)
                 {
-                    Debug.Fail("Point is occupied by both players.");
+                    var rev = minPlayer.Reverse();
+
+                    Debug.WriteLine($"Invalid move: {LastMove}");
+                    Debug.WriteLine(string.Join(' ', maxPlayer));
+                    Debug.WriteLine(string.Join(' ', rev));
                 }
             }
         }
