@@ -1,7 +1,7 @@
 ﻿using Backgammon.Game.Agents;
 using Backgammon.Game.Common;
 using System;
-using System.ComponentModel;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -11,8 +11,6 @@ namespace Backgammon.Game
 {
     class Program
     {
-        private static Random rnd = new Random();
-
         static Program()
         {
             ConsoleErrorWriterDecorator.SetToConsole();
@@ -22,24 +20,65 @@ namespace Backgammon.Game
         static void Main(string[] args)
         {
             // RunGameInteractive(game, new ExpectimaxBackgammonAgent(game));
-
             try
             {
-                int iterations = 2;
-                bool[] result = new bool[iterations];
-
-                Parallel.For(0, iterations, new Action<int>((i) =>
-                {
-                    result[i] = RunGameSilent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent());
-                    Console.WriteLine(result[i]);
-                }));
-
-                double winLoseRatio = (double)result.Select(r => r ? 1 : 0).Sum() / iterations;
-                Console.WriteLine($"Successrate is {winLoseRatio * 100:0.00} %");
+                MeasureAgentVsAgent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent());
             }
             catch (Exception ex)
             {
                 Console.Error.WriteLine(ex.ToString());
+            }
+        }
+
+        private static void MeasureAgentVsAgent(IBackgammonAgent player, IBackgammonAgent adversary)
+        {
+            int iterations = 20;
+            Console.WriteLine($"Running {player.Name} against {adversary.Name} with {iterations} iterations...");
+
+            bool[] result = new bool[iterations];
+            int elapsedMilliseconds = 0;
+
+            Parallel.For(0, iterations, new Action<int>((i) =>
+            {
+                var sw = new Stopwatch();
+                sw.Start();
+                result[i] = RunGameSilent(player, adversary);
+                sw.Stop();
+                Interlocked.Add(ref elapsedMilliseconds, (int)sw.ElapsedMilliseconds);
+                Console.WriteLine($"{(result[i] ? player.Name : adversary.Name)} has won iteration!");
+            }));
+
+            Console.WriteLine();
+            Console.WriteLine($"Total elapsed time: {(double)elapsedMilliseconds / 1000:0.000} ms");
+            Console.WriteLine($"Avg. time per iteration: {(double)elapsedMilliseconds / iterations / 1000:0.000} s");
+            Console.WriteLine($"Successrate for {player.Name}: {(double)result.Select(r => r ? 1 : 0).Sum() / iterations * 100:0.00} %");
+        }
+
+        private static bool RunGameSilent(IBackgammonAgent player, IBackgammonAgent adverary)
+        {
+            DiceRoll roll;
+            Ply ply;
+            var game = Backgammon.Setup();
+
+            while (true)
+            {
+                roll = DiceCup.Roll();
+                ply = player.NextPly(roll, game);
+                game.ExecutePly(ply);
+
+                if (game.IsTerminal())
+                {
+                    return true;
+                }
+
+                roll = DiceCup.Roll();
+                ply = adverary.NextPly(roll, game);
+                game.ExecutePly(ply);
+
+                if (game.IsTerminal())
+                {
+                    return false;
+                }
             }
         }
 
@@ -90,34 +129,6 @@ namespace Backgammon.Game
             BackgammonPrinter.Print(game);
         }
 
-        private static bool RunGameSilent(IBackgammonAgent player, IBackgammonAgent adverary)
-        {
-            DiceRoll roll;
-            Ply ply;
-            var game = Backgammon.Setup();
-
-            while (true)
-            {
-                roll = DiceCup.Roll();
-                ply = player.NextPly(roll, game);
-                game.ExecutePly(ply);
-
-                if (game.IsTerminal())
-                {
-                    return true;
-                }
-
-                roll = DiceCup.Roll();
-                ply = adverary.NextPly(roll, game);
-                game.ExecutePly(ply);
-
-                if (game.IsTerminal())
-                {
-                    return false;
-                }
-            }
-        }
-
         private static Ply ReadPly(DiceRoll roll)
         {
             var moveOne = ReadMove(roll.One);
@@ -158,16 +169,6 @@ namespace Backgammon.Game
             }
 
             return new Move(--point, dice);
-        }
-
-        private static Tuple<short, short> RollDice()
-        {
-            return new Tuple<short, short>((short)(rnd.Next(6) + 1), (short)(rnd.Next(6) + 1));
-        }
-
-        private static Tuple<short, short> RollDice(short a, short b)
-        {
-            return new Tuple<short, short>(a, b);
         }
     }
 }

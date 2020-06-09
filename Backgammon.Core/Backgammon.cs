@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
-using System.Xml.Serialization;
 
 namespace Backgammon.Game
 {
@@ -16,7 +15,7 @@ namespace Backgammon.Game
         private const int NumPoints = 24;
 
         private bool maxToMove = true;
-        public static readonly Tuple<short, short>[] DicePairs;
+        public static readonly DiceRoll[] DicePairs;
         public bool actualGame = false;
 
         /// <summary>
@@ -26,19 +25,19 @@ namespace Backgammon.Game
         {
             // Precompute all possible dice combinations. The order of the dice can be ignored.
             // Therefore we only end up with 21 combinations instead of 36 given by 6 x 6.
-            DicePairs = new Tuple<short, short>[21];
+            DicePairs = new DiceRoll[21];
             int counter = 0;
             for (int i = 1; i <= 6; i++)
             {
                 // Start with i to ignore duplicates by means of different order.
                 for (int j = i; j <= 6; j++)
                 {
-                    DicePairs[counter++] = new Tuple<short, short>((short)i, (short)j);
+                    DicePairs[counter++] = new DiceRoll((short)i, (short)j);
                 }
             }
         }
 
-        private Backgammon(Player maxPlayer, Player minPlayer, bool maxToMove, Ply move)
+        private Backgammon(PlayerState maxPlayer, PlayerState minPlayer, bool maxToMove, Ply move)
         {
             this.MaxPlayer = maxPlayer;
             this.MinPlayer = minPlayer;
@@ -46,9 +45,9 @@ namespace Backgammon.Game
             LastMove = move;
         }
 
-        public Player MaxPlayer { get; private set; }
+        public PlayerState MaxPlayer { get; private set; }
 
-        public Player MinPlayer { get; private set; }
+        public PlayerState MinPlayer { get; private set; }
 
         public Ply LastMove { get; private set; }
 
@@ -67,7 +66,7 @@ namespace Backgammon.Game
             return MaxPlayer.IsFinished() || MinPlayer.IsFinished();
         }
 
-        public Player GetCurrentPlayer()
+        public PlayerState GetCurrentPlayer()
         {
             return maxToMove ? MaxPlayer : MinPlayer;
         }
@@ -79,14 +78,14 @@ namespace Backgammon.Game
         /// </summary>
         public static Backgammon Setup()
         {
-            var bckg = new Backgammon(new Player() { Name = "Max" }, new Player() { Name = "Min" }, true, null);
+            var bckg = new Backgammon(new PlayerState() { Name = "Max" }, new PlayerState() { Name = "Min" }, true, null);
             bckg.actualGame = true;
             return bckg;
         }
 
         public bool ValidatePly(Ply ply, DiceRoll roll)
         {
-            var moves = GetPossibleMoves(new Tuple<short, short>(roll.One, roll.Two)).ToList();
+            var moves = GetPossiblePlies(roll).ToList();
             return moves.Contains(ply, PlyEqualityComparer.Instance);
         }
 
@@ -99,10 +98,10 @@ namespace Backgammon.Game
         /// Return false if an has error occured (invalid move) and the state has been roll back.</returns>
         public bool ExecutePly(Ply ply, bool rollbackOnError = false)
         {
-            Player player = maxToMove ? MaxPlayer : MinPlayer,
+            PlayerState player = maxToMove ? MaxPlayer : MinPlayer,
                    opponent = maxToMove ? MinPlayer : MaxPlayer;
 
-            Player maxClone = null, minClone = null;
+            PlayerState maxClone = null, minClone = null;
             if (rollbackOnError)
             {
                 maxClone = MaxPlayer.Clone();
@@ -143,15 +142,9 @@ namespace Backgammon.Game
             return true;
         }
 
-        [Obsolete("Use GetPossibleMoves(DiceRoll) instead.")]
-        public Ply[] GetPossibleMoves(Tuple<short, short> roll)
-        {
-            return GetPossiblePlies(new DiceRoll(roll.Item1, roll.Item2));
-        }
-
         public Ply[] GetPossiblePlies(DiceRoll roll)
         {
-            Player player = maxToMove ? MaxPlayer : MinPlayer,
+            PlayerState player = maxToMove ? MaxPlayer : MinPlayer,
                    opponent = maxToMove ? MinPlayer : MaxPlayer;
 
             var biggestBar = 0;
@@ -196,7 +189,7 @@ namespace Backgammon.Game
             return expansion.ToArray();
         }
 
-        private Ply[] GetPossiblePlies(Player player, Player opponent, short diceOne, short diceTwo)
+        private Ply[] GetPossiblePlies(PlayerState player, PlayerState opponent, short diceOne, short diceTwo)
         {
             // Keep track of plies to ignore duplicates by means of different move order
             var expansion = new HashSet<Ply>();
@@ -223,7 +216,7 @@ namespace Backgammon.Game
             return expansion.ToArray();
         }
 
-        private Move[] GetPossibleMoves(Player player, Player opponent, short dice)
+        private Move[] GetPossibleMoves(PlayerState player, PlayerState opponent, short dice)
         {
             var moves = new List<Move>();
             foreach (var checker in FindPlayerPoints(player))
@@ -236,7 +229,7 @@ namespace Backgammon.Game
             return moves.ToArray();
         }
 
-        private void ExecuteMove(Player player, Player opponent, Move move)
+        private void ExecuteMove(PlayerState player, PlayerState opponent, Move move)
         {
             MoveCheckerOnPlayer(player, move.Checker, move.Pips);
             if (IsTargetBlot(opponent, move.Checker, move.Pips))
@@ -245,17 +238,17 @@ namespace Backgammon.Game
             }
         }
 
-        private bool IsTargetOpen(Player opponent, short source, short dice)
+        private bool IsTargetOpen(PlayerState opponent, short source, short dice)
         {
             return GetNumOpponentCheckersOnTarget(opponent.Board, source, dice) < 2;
         }
 
-        private bool IsTargetBlot(Player opponent, short source, short dice)
+        private bool IsTargetBlot(PlayerState opponent, short source, short dice)
         {
             return GetNumOpponentCheckersOnTarget(opponent.Board, source, dice) == 1;
         }
 
-        private static void ApplyHitOnOpponent(Player opponent, short source, short dice)
+        private static void ApplyHitOnOpponent(PlayerState opponent, short source, short dice)
         {
             opponent.Board[23 - (source - dice)]--; // remove opponent checker from his board
             opponent.Bar++; // and put it on his bar
@@ -266,13 +259,13 @@ namespace Backgammon.Game
         /// </summary>
         /// <param name="diceOne">First dice value.</param>
         /// <param name="diceTwo">Second dice value.</param>
-        public IEnumerable<Backgammon> Expand(Tuple<short, short> roll)
+        public IEnumerable<Backgammon> Expand(DiceRoll roll)
         {
-            Player player = maxToMove ? MaxPlayer : MinPlayer,
+            PlayerState player = maxToMove ? MaxPlayer : MinPlayer,
                    opponent = maxToMove ? MinPlayer : MaxPlayer;
 
             // Holds all our successors
-            var possibleMoves = GetPossibleMoves(roll);
+            var possibleMoves = GetPossiblePlies(roll);
             var successors = new List<Backgammon>(possibleMoves.Length);
             foreach (var move in possibleMoves)
             {
@@ -291,7 +284,7 @@ namespace Backgammon.Game
         /// <param name="checkerIndex">Index of checker to move.</param>
         /// <param name="pips">Difference in pips between source and target point.</param>
         /// <returns>A new checkers array with the move applied.</returns>
-        private static void MoveCheckerOnPlayer(Player player, short source, short dice)
+        private static void MoveCheckerOnPlayer(PlayerState player, short source, short dice)
         {
             if (source == 24)
             {
@@ -308,13 +301,14 @@ namespace Backgammon.Game
             }
         }
 
-        private short[] FindPlayerPoints(Player player)
+        private short[] FindPlayerPoints(PlayerState player)
         {
+            var board = player.Board; // impacts perfomance
             int index = 0;
             short[] occupied = new short[15];
-            for (short i = 0; i < player.Board.Length; i++)
+            for (short i = 0; i < board.Length; i++)
             {
-                if (player.Board[i] > 0)
+                if (board[i] > 0)
                 {
                     occupied[index++] = i;
                 }

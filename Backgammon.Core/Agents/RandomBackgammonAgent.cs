@@ -10,6 +10,8 @@ namespace Backgammon.Game.Agents
     {
         private readonly static Random rnd = new Random();
 
+        public string Name => "Random Agent";
+
         public Ply NextPly(DiceRoll roll, Backgammon game)
         {
             var moves = game.GetPossiblePlies(roll);

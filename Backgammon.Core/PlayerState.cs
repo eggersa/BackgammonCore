@@ -1,10 +1,8 @@
-﻿using System.Linq;
-
-namespace Backgammon.Game
+﻿namespace Backgammon.Game
 {
-    public class Player
+    public class PlayerState
     {
-        public Player()
+        public PlayerState()
         {
             Board = new short[24];
             Board[23] = 2;
@@ -13,7 +11,7 @@ namespace Backgammon.Game
             Board[5] = 5;
         }
 
-        public Player(short[] board)
+        public PlayerState(short[] board)
         {
             Board = board;
         }
@@ -40,7 +38,7 @@ namespace Backgammon.Game
         public int GetRemainingPips()
         {
             int pips = Bar * 25;
-            for (int i = 0; i < Board.Count(); i++)
+            for (int i = 0; i < Board.Length; i++)
             {
                 pips += (i + 1) * Board[i];
             }
@@ -54,7 +52,7 @@ namespace Backgammon.Game
         public int GetRemainingCheckers()
         {
             int sum = 0;
-            for (int i = 0; i < Board.Count(); i++)
+            for (int i = 0; i < Board.Length; i++)
             {
                 sum += Board[i];
             }
@@ -70,9 +68,9 @@ namespace Backgammon.Game
             return GetRemainingCheckers() + Bar == 0;
         }
 
-        public Player Clone()
+        public PlayerState Clone()
         {
-            return new Player()
+            return new PlayerState()
             {
                 Bar = Bar,
                 Board = ArrayHelper.FastArrayCopy(Board)

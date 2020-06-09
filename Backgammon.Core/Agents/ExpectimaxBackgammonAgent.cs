@@ -1,18 +1,16 @@
-﻿using System;
-
-namespace Backgammon.Game.Agents
+﻿namespace Backgammon.Game.Agents
 {
     public class ExpectimaxBackgammonAgent : IBackgammonAgent
     {
-        private double bestScore = double.NegativeInfinity;
+        public string Name => "Expectimax Agent";
 
         public Ply NextPly(DiceRoll roll, Backgammon game)
         {
-            (double _, Ply ply) = Expectimax(game, new Tuple<short, short>(roll.One, roll.Two), 2);
+            (double _, Ply ply) = Expectimax(game, roll, 2);
             return ply;
         }
 
-        private (double score, Ply bestMove) Expectimax(Backgammon state, Tuple<short, short> roll, int depth, bool chance = false)
+        private (double score, Ply bestMove) Expectimax(Backgammon state, DiceRoll roll, int depth, bool chance = false)
         {
             if (state.IsTerminal() || depth == 0)
             {
@@ -31,7 +29,7 @@ namespace Backgammon.Game.Agents
                     foreach (var child in state.Expand(pair))
                     {
                         (double score, _) = Expectimax(child, pair, depth, false); // chance nodes do not account for depth
-                        if (pair.Item1 == pair.Item2)
+                        if (pair.One == pair.Two)
                         {
                             bestScore += 1 / 36 * score;
                         }
@@ -80,7 +78,7 @@ namespace Backgammon.Game.Agents
         /// <returns>Returns a value that determines the players current state.
         /// A lower value is better. A value of 0 means the player has won.
         /// </returns>
-        private double Evaluate(Player player)
+        private double Evaluate(PlayerState player)
         {
             return Evaluate(player, 0.5, 1, 1.5);
         }
@@ -94,7 +92,7 @@ namespace Backgammon.Game.Agents
         /// <returns>Returns a value that determines the players current state.
         /// A bigger value is better. A value of 0 means the player has finished.
         /// </returns>
-        private static double Evaluate(Player player, double wCheckers, double wPips, double wBar)
+        private static double Evaluate(PlayerState player, double wCheckers, double wPips, double wBar)
         {
             return -(wCheckers * player.GetRemainingCheckers() + wPips * player.GetRemainingPips() + wBar * player.Bar);
         }
