@@ -1,5 +1,5 @@
-﻿using System;
-using System.Diagnostics;
+﻿using Backgammon.Game.Common;
+using System;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
@@ -12,6 +12,7 @@ namespace Backgammon.Game
 
         static Program()
         {
+            ConsoleErrorWriterDecorator.SetToConsole();
             Thread.CurrentThread.CurrentCulture = new CultureInfo("de-CH");
         }
 
@@ -19,71 +20,51 @@ namespace Backgammon.Game
         {
             var game = Backgammon.Setup();
             RunGameInteractive(game);
-
-            //int counter = 0;
-            //Ply ply;
-            //do
-            //{
-            //    Console.WriteLine(game);
-
-            //    do
-            //    {
-            //        // (_, ply) = Expectimax(game, roll, 2);
-            //        ply = FindRandomMove(game, roll);
-            //        roll = RollDice();
-            //    } while (ply == null);
-
-            //    // Console.WriteLine();
-
-            //    counter++;
-            //    Console.WriteLine("counter: " + counter);
-            //} while (!game.ApplyMove(ply));
-
-            //Console.WriteLine(game);
-            //Console.WriteLine($"Game finished with {counter} moves");
-
-            Console.ReadKey(true);
         }
 
         private static void RunGameInteractive(Backgammon game)
         {
             var roll = DiceCup.Roll();
-
-            // TODO: Determine starting player
-
             BackgammonPrinter.Print(game);
+            Console.WriteLine($"==== {roll} ====");
+            Console.WriteLine();
             Ply ply;
-            bool valid = true;
-            do
+            while (true)
             {
-                if (!valid)
+                while(true)
                 {
-                    Console.Clear();
-                    BackgammonPrinter.Print(game);
-                    Console.Error.WriteLine("One or more moves are not valid.");
+                    ply = ReadPly(roll);
+                    if (ply == null || game.ValidatePly(ply, roll))
+                    {
+                        break;
+                    }
+                    Console.Error.WriteLine("One or more moves are invalid.");
                 }
-                ply = ReadPly(roll);
-                if(ply == null)
+
+                if (ply == null)
                 {
                     break;
                 }
-            } while (!(valid = game.ExecutePly(ply, true)));
+
+                game.ExecutePly(ply);
+                Console.Clear();
+                RunGameInteractive(game);
+            }
 
             Console.Clear();
-
             BackgammonPrinter.Print(game);
         }
 
         private static Ply ReadPly(DiceRoll roll)
         {
             var moveOne = ReadMove(roll.One);
-            if(moveOne == null)
+            if (moveOne == null)
             {
                 return null;
             }
 
             var moveTwo = ReadMove(roll.Two);
-            if(moveTwo == null)
+            if (moveTwo == null)
             {
                 return null;
             }
@@ -103,7 +84,7 @@ namespace Backgammon.Game
 
             if (!short.TryParse(command, out short point))
             {
-                Console.Error.Write("Input is not recognized. ");
+                Console.Error.WriteLine("Input is not recognized. ");
                 return ReadMove(dice);
             }
 
@@ -115,26 +96,6 @@ namespace Backgammon.Game
 
             return new Move(--point, dice);
         }
-
-        //private static int CountMoves(Tuple<short, short> initial)
-        //{
-        //    var game = Backgammon.Setup();
-        //    int counter = 0;
-        //    Ply ply;
-        //    do
-        //    {
-        //        do
-        //        {
-        //            (_, ply) = Expectimax(game, initial, 2);
-        //            // ply = FindRandomMove(game, initial);
-        //            initial = RollDice();
-        //        } while (ply == null);
-        //        counter++;
-        //        Console.WriteLine(game);
-        //    } while (!game.ExecutePly(ply));
-
-        //    return counter;
-        //}
 
         private static Ply FindRandomMove(Backgammon state, Tuple<short, short> roll)
         {

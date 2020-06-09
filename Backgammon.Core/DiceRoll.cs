@@ -40,6 +40,11 @@ namespace Backgammon.Game
             return One == Two;
         }
 
+        public override string ToString()
+        {
+            return $"Roll {One} and {Two}";
+        }
+
         [Conditional("DEBUG"), DebuggerStepThrough]
         private void AssertDiceValue(short value)
         {
