@@ -43,6 +43,16 @@ namespace Backgammon.Game
             LastMove = move;
         }
 
+        public Player MaxPlayer
+        {
+            get { return maxPlayer; }
+        }
+
+        public Player MinPlayer
+        {
+            get { return maxPlayer; }
+        }
+
         public Ply LastMove { get; private set; }
 
         public bool MaxToMove()
@@ -100,7 +110,7 @@ namespace Backgammon.Game
         /// two on each player's twenty-four point, five on each player's thirteen point, 
         /// three on each player's eight point, and five on each player's six point.
         /// </summary>
-        public static Backgammon Start()
+        public static Backgammon Setup()
         {
             return new Backgammon(new Player(), new Player(), true, null);
         }
