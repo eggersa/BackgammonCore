@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
+using System.Xml.Serialization;
 
 namespace Backgammon.Game
 {
@@ -125,10 +126,10 @@ namespace Backgammon.Game
                 }
                 else if (nTargets == 1)
                 {
-                    HitOpponent(move.Pips, opponent, move.Checker);
+                    ApplyHitOnOpponent(opponent, move.Checker, move.Pips);
                 }
 
-                player.Board = MoveChecker(player.Board, move.Checker, move.Pips);
+                MoveCheckerOnPlayer(player, move.Checker, move.Pips);
             }
 
             LastMove = ply;
@@ -136,7 +137,7 @@ namespace Backgammon.Game
             // update players
             MaxPlayer.Board = (maxToMove ? player : opponent).Board;
             MinPlayer.Board = (maxToMove ? opponent : player).Board;
-            
+
             maxToMove = !maxToMove; // switch current player
 
             return true;
@@ -145,72 +146,119 @@ namespace Backgammon.Game
         [Obsolete("Use GetPossibleMoves(DiceRoll) instead.")]
         public Ply[] GetPossibleMoves(Tuple<short, short> roll)
         {
-            return GetPossibleMoves(new DiceRoll(roll.Item1, roll.Item2));
+            return GetPossiblePlies(new DiceRoll(roll.Item1, roll.Item2));
         }
 
-        // TODO: Might not retur all moves in an endgame
-        public Ply[] GetPossibleMoves(DiceRoll roll)
+        public Ply[] GetPossiblePlies(DiceRoll roll)
         {
-            short diceOne = roll.One, diceTwo = roll.Two;
-
             Player player = maxToMove ? MaxPlayer : MinPlayer,
                    opponent = maxToMove ? MinPlayer : MaxPlayer;
 
+            var biggestBar = 0;
+
             // Keep track of plies to ignore duplicates by means of different move order
             var expansion = new HashSet<Ply>();
-
-            foreach (var firstCheckerToMove in FindOccupiedPoints(player.Board))
+            foreach (var ply in GetPossiblePlies(player, opponent, roll.One, roll.Two))
             {
-                Player opponentAfterFirstMove = opponent.Clone();
-
-                short nTarget = GetNumOpponentCheckersOnTarget(opponentAfterFirstMove.Board, firstCheckerToMove, diceOne);
-                if (nTarget <= 1)
+                // Ensure that the player plays moves as many checkers as possible from the bar.
+                if (ply.CountBarMovements > biggestBar)
                 {
-                    if (nTarget == 1 /* blot */)
-                    {
-                        HitOpponent(diceOne, opponentAfterFirstMove, firstCheckerToMove);
-                    }
+                    biggestBar = ply.CountBarMovements;
+                    expansion.Clear(); // All previous moves are invalid in this case
                 }
-                else
+                else if (ply.CountBarMovements < biggestBar)
                 {
-                    // target point is already occupied by opponent
                     continue;
                 }
 
-                short[] playerAfterFirstMove = MoveChecker(player.Board, firstCheckerToMove, diceOne);
+                expansion.Add(ply);
+            }
 
-                var ply = new Ply();
-                ply.AddMove(firstCheckerToMove, diceOne);
-
-                var occupiedPointsAfterFirstMove = FindOccupiedPoints(playerAfterFirstMove);
-                if (occupiedPointsAfterFirstMove.Length == 0) // check if game is finished after first move
+            if (!expansion.Any()) // In certain cases only one of two dice can be played.
+            {
+                foreach (var ply in GetPossiblePlies(player, opponent, roll.Two, roll.One))
                 {
-                    return new Ply[] { ply }; // no need to find additional moves (pruning)
-                }
-
-                foreach (var secondCheckerToMove in occupiedPointsAfterFirstMove)
-                {
-                    Player opponentAfterSecondMove = opponentAfterFirstMove.Clone();
-
-                    nTarget = GetNumOpponentCheckersOnTarget(opponentAfterSecondMove.Board, secondCheckerToMove, diceTwo);
-                    if (nTarget <= 1)
+                    // Ensure that the player plays moves as many checkers as possible from the bar.
+                    if (ply.CountBarMovements > biggestBar)
                     {
-                        if (nTarget == 1 /* blot */)
-                        {
-                            HitOpponent(diceTwo, opponentAfterSecondMove, secondCheckerToMove);
-                        }
+                        biggestBar = ply.CountBarMovements;
+                        expansion.Clear(); // All previous moves are invalid in this case
                     }
-                    else
+                    else if (ply.CountBarMovements < biggestBar)
                     {
-                        // target point is already occupied by opponent
                         continue;
                     }
 
-                    expansion.Add(new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo)));
+                    expansion.Add(ply);
                 }
             }
 
             return expansion.ToArray();
+        }
+
+        private Ply[] GetPossiblePlies(Player player, Player opponent, short diceOne, short diceTwo)
+        {
+            // Keep track of plies to ignore duplicates by means of different move order
+            var expansion = new HashSet<Ply>();
+
+            var moves = GetPossibleMoves(player, opponent, diceOne);
+            foreach (var firstMove in moves)
+            {
+                var playerClone = player.Clone();
+                var opponentClone = opponent.Clone();
+                ExecuteMove(playerClone, opponentClone, firstMove);
+
+                if (playerClone.IsFinished())
+                {
+                    expansion.Add(new Ply(firstMove));
+                    continue;
+                }
+
+                foreach (var secondMove in GetPossibleMoves(playerClone, opponentClone, diceTwo))
+                {
+                    expansion.Add(new Ply(firstMove, secondMove));
+                }
+            }
+
+            return expansion.ToArray();
+        }
+
+        private Move[] GetPossibleMoves(Player player, Player opponent, short dice)
+        {
+            var moves = new List<Move>();
+            foreach (var checker in FindPlayerPoints(player))
+            {
+                if (IsTargetOpen(opponent, checker, dice))
+                {
+                    moves.Add(new Move(checker, dice));
+                }
+            }
+            return moves.ToArray();
+        }
+
+        private void ExecuteMove(Player player, Player opponent, Move move)
+        {
+            MoveCheckerOnPlayer(player, move.Checker, move.Pips);
+            if (IsTargetBlot(opponent, move.Checker, move.Pips))
+            {
+                ApplyHitOnOpponent(opponent, move.Checker, move.Pips);
+            }
+        }
+
+        private bool IsTargetOpen(Player opponent, short source, short dice)
+        {
+            return GetNumOpponentCheckersOnTarget(opponent.Board, source, dice) < 2;
+        }
+
+        private bool IsTargetBlot(Player opponent, short source, short dice)
+        {
+            return GetNumOpponentCheckersOnTarget(opponent.Board, source, dice) == 1;
+        }
+
+        private static void ApplyHitOnOpponent(Player opponent, short source, short dice)
+        {
+            opponent.Board[23 - (source - dice)]--; // remove opponent checker from his board
+            opponent.Bar++; // and put it on his bar
         }
 
         /// <summary>
@@ -236,15 +284,6 @@ namespace Backgammon.Game
             return successors;
         }
 
-        private static void HitOpponent(short pips, Player opponent, short checker)
-        {
-            opponent.Board[23 - (checker - pips)]--; // remove opponent checker from his board
-
-            // TODO: Uncomment
-
-            // opponent.Bar++; // and put it on his bar
-        }
-
         /// <summary>
         /// Moves a checker forward by the specified distance (pips).
         /// </summary>
@@ -252,31 +291,38 @@ namespace Backgammon.Game
         /// <param name="checkerIndex">Index of checker to move.</param>
         /// <param name="pips">Difference in pips between source and target point.</param>
         /// <returns>A new checkers array with the move applied.</returns>
-        private static short[] MoveChecker(short[] player, short checkerIndex, short pips)
+        private static void MoveCheckerOnPlayer(Player player, short source, short dice)
         {
-            var playerCopy = ArrayHelper.FastArrayCopy(player);
-
-            playerCopy[checkerIndex]--; // remove checker from source point
-            if (checkerIndex - pips > 0) // check for bear-off
+            if (source == 24)
             {
-                playerCopy[checkerIndex - pips]++; // put checker on new point (left to right!)
+                player.Bar--;
+            }
+            else
+            {
+                player.Board[source]--; // remove checker from source point
             }
 
-            return playerCopy;
+            if (source - dice > 0) // check for bear-off
+            {
+                player.Board[source - dice]++; // put checker on new point (left to right!)
+            }
         }
 
-        private short[] FindOccupiedPoints(short[] player)
+        private short[] FindPlayerPoints(Player player)
         {
             int index = 0;
             short[] occupied = new short[15];
-            for (short i = 0; i < player.Length; i++)
+            for (short i = 0; i < player.Board.Length; i++)
             {
-                if (player[i] > 0)
+                if (player.Board[i] > 0)
                 {
                     occupied[index++] = i;
                 }
             }
-
+            if (player.Bar > 0)
+            {
+                occupied[index++] = 24;
+            }
             return ArrayHelper.FastArrayCopy(occupied, index);
         }
 

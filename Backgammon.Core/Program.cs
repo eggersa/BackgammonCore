@@ -25,12 +25,13 @@ namespace Backgammon.Game
 
             try
             {
-                int iterations = 10;
+                int iterations = 2;
                 bool[] result = new bool[iterations];
 
                 Parallel.For(0, iterations, new Action<int>((i) =>
                 {
                     result[i] = RunGameSilent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent());
+                    Console.WriteLine(result[i]);
                 }));
 
                 double winLoseRatio = (double)result.Select(r => r ? 1 : 0).Sum() / iterations;

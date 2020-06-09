@@ -9,16 +9,25 @@ namespace Backgammon.Game
     {
         /// <summary>
         /// Initializes a new instance of the <see cref="DiceRoll"/> class.
-        /// Only values from 1 to 6 are allowed.
+        /// Only values from 1 to 6 are allowed. The class ensures that the dice one
+        /// is always less or equal dice two.
         /// </summary>
         /// <param name="one">Value of the first dice.</param>
         /// <param name="one">Value of the second dice.</param>
         public DiceRoll(short one, short two)
         {
+            if(one > two)
+            {
+                short tmp = two;
+                two = one;
+                one = tmp;
+            }
+
             AssertDiceValue(one);
             One = one;
             AssertDiceValue(two);
             Two = two;
+
         }
 
         /// <summary>

@@ -83,15 +83,6 @@ namespace Backgammon.Game.Agents
         private double Evaluate(Player player)
         {
             return Evaluate(player, 0.5, 1, 1.5);
-           
-            //if(val > bestScore)
-            //{
-            //    bestScore = val;
-            //    Console.WriteLine(val);
-            //}
-
-
-            //return val;
         }
 
         /// <summary>

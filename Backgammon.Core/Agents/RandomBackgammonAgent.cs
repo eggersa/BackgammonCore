@@ -12,7 +12,7 @@ namespace Backgammon.Game.Agents
 
         public Ply NextPly(DiceRoll roll, Backgammon game)
         {
-            var moves = game.GetPossibleMoves(roll);
+            var moves = game.GetPossiblePlies(roll);
             if (moves.Any())
             {
                 return moves[rnd.Next(0, moves.Count())];

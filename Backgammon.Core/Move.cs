@@ -2,14 +2,17 @@
 {
     public class Move
     {
+        public bool Bar { get; private set; }
+
         public short Checker { get; private set; }
 
         public short Pips { get; private set; }
 
-        public Move(short playerIndex, short pips)
+        public Move(short playerIndex, short pips, bool bar = false)
         {
             Checker = playerIndex;
             Pips = pips;
+            Bar = bar;
         }
 
         public override int GetHashCode()

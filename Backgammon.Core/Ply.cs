@@ -13,16 +13,22 @@ namespace Backgammon.Game
     {
         // Moves are orderd to easier compare two plies.
         private readonly List<Move> moves = new List<Move>(2);
-
         public static readonly Ply ZeroPly = new Ply();
 
         public Ply() { }
+
+        public Ply(Move a)
+        {
+            AddMove(a);
+        }
 
         public Ply(Move a, Move b)
         {
             AddMove(a);
             AddMove(b);
         }
+
+        public int CountBarMovements { get; private set; }
 
         public IEnumerable<Move> GetMoves()
         {
@@ -32,6 +38,11 @@ namespace Backgammon.Game
         public void AddMove(Move move)
         {
             VerifyAcces();
+
+            if (move.Checker == 24)
+            {
+                CountBarMovements++;
+            }
 
             if (moves.Any() && move.Pips < moves[0].Pips)
             {
@@ -64,6 +75,11 @@ namespace Backgammon.Game
             }
 
             return true;
+        }
+
+        public bool IsSingleMove()
+        {
+            return moves.Count == 1;
         }
 
         public override int GetHashCode()
