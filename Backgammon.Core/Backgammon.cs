@@ -16,6 +16,7 @@ namespace Backgammon.Game
 
         private bool maxToMove = true;
         public static readonly Tuple<short, short>[] DicePairs;
+        public bool actualGame = false;
 
         /// <summary>
         /// Initializes static field and properties of the class.
@@ -62,17 +63,12 @@ namespace Backgammon.Game
 
         public bool IsTerminal()
         {
-            var player = maxToMove ? MaxPlayer : MinPlayer;
-            return player.IsFinished();
+            return MaxPlayer.IsFinished() || MinPlayer.IsFinished();
         }
 
-        public double Utility()
+        public Player GetCurrentPlayer()
         {
-            if (MaxToMove())
-            {
-                return MaxPlayer.Evaluate();
-            }
-            return MinPlayer.Evaluate();
+            return maxToMove ? MaxPlayer : MinPlayer;
         }
 
         /// <summary>
@@ -82,7 +78,9 @@ namespace Backgammon.Game
         /// </summary>
         public static Backgammon Setup()
         {
-            return new Backgammon(new Player(), new Player(), true, null);
+            var bckg = new Backgammon(new Player() { Name = "Max" }, new Player() { Name = "Min" }, true, null);
+            bckg.actualGame = true;
+            return bckg;
         }
 
         public bool ValidatePly(Ply ply, DiceRoll roll)
@@ -135,13 +133,25 @@ namespace Backgammon.Game
 
             LastMove = ply;
 
+            // update players
+            MaxPlayer.Board = (maxToMove ? player : opponent).Board;
+            MinPlayer.Board = (maxToMove ? opponent : player).Board;
+            
+            maxToMove = !maxToMove; // switch current player
+
             return true;
         }
 
-        // TODO: Might not retur all moves in an endgame
+        [Obsolete("Use GetPossibleMoves(DiceRoll) instead.")]
         public Ply[] GetPossibleMoves(Tuple<short, short> roll)
         {
-            short diceOne = roll.Item1, diceTwo = roll.Item2;
+            return GetPossibleMoves(new DiceRoll(roll.Item1, roll.Item2));
+        }
+
+        // TODO: Might not retur all moves in an endgame
+        public Ply[] GetPossibleMoves(DiceRoll roll)
+        {
+            short diceOne = roll.One, diceTwo = roll.Two;
 
             Player player = maxToMove ? MaxPlayer : MinPlayer,
                    opponent = maxToMove ? MinPlayer : MaxPlayer;
@@ -220,7 +230,6 @@ namespace Backgammon.Game
             {
                 var bckg = new Backgammon(player.Clone(), opponent.Clone(), true, null);
                 bckg.ExecutePly(move); // apply move for current player
-                bckg.maxToMove = !bckg.maxToMove; // now switch player
                 successors.Add(bckg);
             }
 

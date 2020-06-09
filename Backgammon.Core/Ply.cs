@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 
 namespace Backgammon.Game
@@ -12,6 +13,8 @@ namespace Backgammon.Game
     {
         // Moves are orderd to easier compare two plies.
         private readonly List<Move> moves = new List<Move>(2);
+
+        public static readonly Ply ZeroPly = new Ply();
 
         public Ply() { }
 
@@ -28,6 +31,8 @@ namespace Backgammon.Game
 
         public void AddMove(Move move)
         {
+            VerifyAcces();
+
             if (moves.Any() && move.Pips < moves[0].Pips)
             {
                 moves.Insert(0, move);
@@ -83,7 +88,21 @@ namespace Backgammon.Game
 
         public override string ToString()
         {
+            if(this == ZeroPly)
+            {
+                return "No moves";
+            }
+
             return string.Join("; ", moves.Select(m => m.ToString()));
+        }
+
+        [Conditional("DEBUG"), DebuggerStepThrough]
+        private void VerifyAcces()
+        {
+            if (this == ZeroPly)
+            {
+                throw new InvalidOperationException("You can not modify to ZeroPly");
+            }
         }
     }
 }

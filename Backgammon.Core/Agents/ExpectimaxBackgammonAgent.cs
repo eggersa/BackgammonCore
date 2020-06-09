@@ -4,29 +4,24 @@ namespace Backgammon.Game.Agents
 {
     public class ExpectimaxBackgammonAgent : IBackgammonAgent
     {
-        private readonly Backgammon game;
+        private double bestScore = double.NegativeInfinity;
 
-        public ExpectimaxBackgammonAgent(Backgammon game)
-        {
-            this.game = game;
-        }
-
-        public Ply NextPly(DiceRoll roll)
+        public Ply NextPly(DiceRoll roll, Backgammon game)
         {
             (double _, Ply ply) = Expectimax(game, new Tuple<short, short>(roll.One, roll.Two), 2);
             return ply;
         }
 
-        private static (double score, Ply bestMove) Expectimax(Backgammon state, Tuple<short, short> roll, int depth, bool chance = false)
+        private (double score, Ply bestMove) Expectimax(Backgammon state, Tuple<short, short> roll, int depth, bool chance = false)
         {
             if (state.IsTerminal() || depth == 0)
             {
                 // Return the heuristic value of node
-                return (state.Utility(), state.LastMove);
+                return (Evaluate(state.GetCurrentPlayer()), state.LastMove);
             }
 
             double bestScore = 0;
-            Ply bestMove = null;
+            Ply bestMove = Ply.ZeroPly;
 
             if (chance)
             {
@@ -77,6 +72,40 @@ namespace Backgammon.Game.Agents
             }
 
             return (bestScore, bestMove);
+        }
+
+        /// <summary>
+        /// Evaluates the players current position.
+        /// </summary>
+        /// <returns>Returns a value that determines the players current state.
+        /// A lower value is better. A value of 0 means the player has won.
+        /// </returns>
+        private double Evaluate(Player player)
+        {
+            return Evaluate(player, 0.5, 1, 1.5);
+           
+            //if(val > bestScore)
+            //{
+            //    bestScore = val;
+            //    Console.WriteLine(val);
+            //}
+
+
+            //return val;
+        }
+
+        /// <summary>
+        /// Evaluates the players current position.
+        /// </summary>
+        /// <param name="wCheckers">Weight for remaining checkers.</param>
+        /// <param name="wPips">Weight for remaining pips.</param>
+        /// <param name="wBar">Weight for checkers on bar.</param>
+        /// <returns>Returns a value that determines the players current state.
+        /// A bigger value is better. A value of 0 means the player has finished.
+        /// </returns>
+        private static double Evaluate(Player player, double wCheckers, double wPips, double wBar)
+        {
+            return -(wCheckers * player.GetRemainingCheckers() + wPips * player.GetRemainingPips() + wBar * player.Bar);
         }
     }
 }

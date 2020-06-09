@@ -37,9 +37,9 @@
         {
             if(Checker - Pips < 0)
             {
-                return $"Bear off from point {Checker + 1}";
+                return $"Bear off {Checker + 1}";
             }
-            return $"Move checker from point {Checker + 1} to point {Checker - Pips + 1}";
+            return $"From {Checker + 1} to {Checker - Pips + 1}";
         }
     }
 }

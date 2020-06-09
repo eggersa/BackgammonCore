@@ -10,6 +10,12 @@ namespace Backgammon.Game
     {
         public static void Print(Backgammon game)
         {
+            if(game.LastMove != null)
+            {
+                Console.WriteLine($"Previous player move is {game.LastMove}");
+                Console.WriteLine();
+            }
+
             PrintColor("|c13d|14|c15d|16|c17d|18|  |c19d|20|c21d|22|c23d|24|\n");
 
             var minboardreverse = ArrayHelper.FastArrayCopy(game.MinPlayer.Board);

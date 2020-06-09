@@ -20,6 +20,8 @@ namespace Backgammon.Game
 
         public short[] Board { get; set; }
 
+        public string Name { get; set; }
+
         public short Bar { get; set; }
 
         /// <summary>
@@ -66,31 +68,6 @@ namespace Backgammon.Game
         public bool IsFinished()
         {
             return GetRemainingCheckers() + Bar == 0;
-        }
-
-        /// <summary>
-        /// Evaluates the players current position.
-        /// </summary>
-        /// <returns>Returns a value that determines the players current state.
-        /// A lower value is better. A value of 0 means the player has won.
-        /// </returns>
-        public double Evaluate()
-        {
-            return Evaluate(0.5, 1, 1.5);
-        }
-
-        /// <summary>
-        /// Evaluates the players current position.
-        /// </summary>
-        /// <param name="wCheckers">Weight for remaining checkers.</param>
-        /// <param name="wPips">Weight for remaining pips.</param>
-        /// <param name="wBar">Weight for checkers on bar.</param>
-        /// <returns>Returns a value that determines the players current state.
-        /// A lower value is better. A value of 0 means the player has won.
-        /// </returns>
-        public double Evaluate(double wCheckers, double wPips, double wBar)
-        {
-            return wCheckers * GetRemainingCheckers() + wPips * GetRemainingPips() + wBar * Bar;
         }
 
         public Player Clone()

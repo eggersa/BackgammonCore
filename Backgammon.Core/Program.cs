@@ -1,8 +1,11 @@
-﻿using Backgammon.Game.Common;
+﻿using Backgammon.Game.Agents;
+using Backgammon.Game.Common;
 using System;
+using System.ComponentModel;
 using System.Globalization;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace Backgammon.Game
 {
@@ -18,11 +21,28 @@ namespace Backgammon.Game
 
         static void Main(string[] args)
         {
-            var game = Backgammon.Setup();
-            RunGameInteractive(game);
+            // RunGameInteractive(game, new ExpectimaxBackgammonAgent(game));
+
+            try
+            {
+                int iterations = 10;
+                bool[] result = new bool[iterations];
+
+                Parallel.For(0, iterations, new Action<int>((i) =>
+                {
+                    result[i] = RunGameSilent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent());
+                }));
+
+                double winLoseRatio = (double)result.Select(r => r ? 1 : 0).Sum() / iterations;
+                Console.WriteLine($"Successrate is {winLoseRatio * 100:0.00} %");
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine(ex.ToString());
+            }
         }
 
-        private static void RunGameInteractive(Backgammon game)
+        private static void RunGameInteractive(Backgammon game, IBackgammonAgent adversary)
         {
             var roll = DiceCup.Roll();
             BackgammonPrinter.Print(game);
@@ -31,7 +51,7 @@ namespace Backgammon.Game
             Ply ply;
             while (true)
             {
-                while(true)
+                while (true)
                 {
                     ply = ReadPly(roll);
                     if (ply == null || game.ValidatePly(ply, roll))
@@ -48,11 +68,53 @@ namespace Backgammon.Game
 
                 game.ExecutePly(ply);
                 Console.Clear();
-                RunGameInteractive(game);
+
+                if (game.MinToMove())
+                {
+                    // Let adversary agent play
+                    roll = DiceCup.Roll();
+                    BackgammonPrinter.Print(game);
+                    Console.WriteLine($"==== {roll} ====");
+                    Console.WriteLine();
+                    Console.WriteLine("Agent is thinking... ");
+                    ply = adversary.NextPly(roll, game);
+                    game.ExecutePly(ply);
+                    Console.Clear();
+                }
+
+                RunGameInteractive(game, adversary);
             }
 
             Console.Clear();
             BackgammonPrinter.Print(game);
+        }
+
+        private static bool RunGameSilent(IBackgammonAgent player, IBackgammonAgent adverary)
+        {
+            DiceRoll roll;
+            Ply ply;
+            var game = Backgammon.Setup();
+
+            while (true)
+            {
+                roll = DiceCup.Roll();
+                ply = player.NextPly(roll, game);
+                game.ExecutePly(ply);
+
+                if (game.IsTerminal())
+                {
+                    return true;
+                }
+
+                roll = DiceCup.Roll();
+                ply = adverary.NextPly(roll, game);
+                game.ExecutePly(ply);
+
+                if (game.IsTerminal())
+                {
+                    return false;
+                }
+            }
         }
 
         private static Ply ReadPly(DiceRoll roll)
@@ -95,18 +157,6 @@ namespace Backgammon.Game
             }
 
             return new Move(--point, dice);
-        }
-
-        private static Ply FindRandomMove(Backgammon state, Tuple<short, short> roll)
-        {
-            var moves = state.GetPossibleMoves(roll);
-            if (!moves.Any())
-            {
-                return null;
-            }
-
-            var selection = rnd.Next(0, moves.Count());
-            return moves[selection];
         }
 
         private static Tuple<short, short> RollDice()
