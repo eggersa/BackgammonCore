@@ -11,24 +11,31 @@ namespace Backgammon.Game
     public class Ply
     {
         // Moves are orderd to easier compare two plies.
-        private readonly SortedList<short, Move> moves = new SortedList<short, Move>(2);
+        private readonly List<Move> moves = new List<Move>(2);
 
         public Ply() { }
 
         public Ply(Move a, Move b)
         {
-            moves.Add(a.Pips, a);
-            moves.Add(b.Pips, b);
+            AddMove(a);
+            AddMove(b);
         }
 
         public IEnumerable<Move> GetMoves()
         {
-            return new List<Move>(moves.Values);
+            return new List<Move>(moves);
         }
 
         public void AddMove(Move move)
         {
-            moves.Add(move.Pips, move);
+            if (moves.Any() && move.Pips < moves[0].Pips)
+            {
+                moves.Insert(0, move);
+            }
+            else
+            {
+                moves.Add(move);
+            }
         }
 
         public void AddMove(short playerIndex, short pips)
@@ -45,7 +52,7 @@ namespace Backgammon.Game
 
             for (short i = 0; i < moves.Count; i++)
             {
-                if (!moves.Values[i].Equals(other.moves.Values[i]))
+                if (!moves[i].Equals(other.moves[i]))
                 {
                     return false;
                 }
@@ -62,11 +69,11 @@ namespace Backgammon.Game
             }
             if (moves.Count == 1)
             {
-                return moves.Values[0].GetHashCode();
+                return moves[0].GetHashCode();
             }
             else if (moves.Count == 2)
             {
-                return moves.Values[0].GetHashCode() ^ moves.Values[1].GetHashCode();
+                return moves[0].GetHashCode() ^ moves[1].GetHashCode();
             }
             else
             {

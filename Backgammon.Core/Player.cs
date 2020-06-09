@@ -17,8 +17,8 @@ namespace Backgammon.Game
         {
             Board = board;
         }
-        
-        public short[] Board { get; private set; } 
+
+        public short[] Board { get; set; }
 
         public short Bar { get; set; }
 
@@ -90,7 +90,21 @@ namespace Backgammon.Game
         /// </returns>
         public double Evaluate(double wCheckers, double wPips, double wBar)
         {
-            return wCheckers * GetRemainingCheckers() + wPips * GetRemainingPips() + wBar * Bar; 
+            return wCheckers * GetRemainingCheckers() + wPips * GetRemainingPips() + wBar * Bar;
+        }
+
+        public Player Clone()
+        {
+            return new Player()
+            {
+                Bar = Bar,
+                Board = ArrayHelper.FastArrayCopy(Board)
+            };
+        }
+
+        public override string ToString()
+        {
+            return string.Join(" ", Board) + " | " + Bar;
         }
     }
 }

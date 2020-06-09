@@ -2,19 +2,19 @@
 {
     public class Move
     {
-        public short PlayerIndex { get; private set; }
+        public short Checker { get; private set; }
 
         public short Pips { get; private set; }
 
         public Move(short playerIndex, short pips)
         {
-            PlayerIndex = playerIndex;
+            Checker = playerIndex;
             Pips = pips;
         }
 
         public override int GetHashCode()
         {
-            int hCode = Pips ^ PlayerIndex;
+            int hCode = Pips ^ Checker;
             return hCode.GetHashCode();
         }
 
@@ -27,7 +27,7 @@
 
             if(obj is Move otherMove)
             {
-                return Pips == otherMove.Pips && PlayerIndex == otherMove.PlayerIndex;
+                return Pips == otherMove.Pips && Checker == otherMove.Checker;
             }
 
             return false;
@@ -35,7 +35,11 @@
 
         public override string ToString()
         {
-            return $"Move checker from point {PlayerIndex + 1} to point {PlayerIndex - Pips + 1}.";
+            if(Checker - Pips < 0)
+            {
+                return $"Bear off from point {Checker + 1}";
+            }
+            return $"Move checker from point {Checker + 1} to point {Checker - Pips + 1}";
         }
     }
 }

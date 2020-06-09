@@ -1,13 +1,14 @@
 ﻿using System;
 using System.Diagnostics;
 using System.Globalization;
+using System.Linq;
 using System.Threading;
 
 namespace Backgammon.Game
 {
     class Program
     {
-        private static Random rnd = new Random(4);
+        private static Random rnd = new Random();
 
         static Program()
         {
@@ -16,26 +17,75 @@ namespace Backgammon.Game
 
         static void Main(string[] args)
         {
-            var game = Backgammon.Start();
+            //var game = Backgammon.Start();
+            // var roll = RollDice();
 
-
-            var roll = RollDice(5, 6);
-
-            var sw = new Stopwatch();
-            sw.Start();
-
-            int iterations = 1;
-            for (int i = 0; i < iterations; i++)
+            var sum = 0;
+            for (int i = 0; i < 100; i++)
             {
-                game.Expand(roll);
+                var numMoves = CountMoves(RollDice());
+                sum += numMoves;
+                Console.WriteLine(numMoves);
             }
 
-            sw.Stop();
-            Console.WriteLine($"Expand: {(double)sw.ElapsedMilliseconds / iterations:0.00} ms.");
+            Console.WriteLine("Avg moves: " + sum / 100);
+
+            //int counter = 0;
+            //Ply ply;
+            //do
+            //{
+            //    Console.WriteLine(game);
+
+            //    do
+            //    {
+            //        // (_, ply) = Expectimax(game, roll, 2);
+            //        ply = FindRandomMove(game, roll);
+            //        roll = RollDice();
+            //    } while (ply == null);
+
+            //    // Console.WriteLine();
+
+            //    counter++;
+            //    Console.WriteLine("counter: " + counter);
+            //} while (!game.ApplyMove(ply));
+
+            //Console.WriteLine(game);
+            //Console.WriteLine($"Game finished with {counter} moves");
 
             Console.ReadKey(true);
         }
 
+        private static int CountMoves(Tuple<short, short> initial)
+        {
+            var game = Backgammon.Start();
+            int counter = 0;
+            Ply ply;
+            do
+            {
+                do
+                {
+                    (_, ply) = Expectimax(game, initial, 2);
+                    // ply = FindRandomMove(game, initial);
+                    initial = RollDice();
+                } while (ply == null);
+                counter++;
+                Console.WriteLine(game);
+            } while (!game.ApplyMove(ply));
+
+            return counter;
+        }
+
+        private static Ply FindRandomMove(Backgammon state, Tuple<short, short> roll)
+        {
+            var moves = state.GetPossibleMoves(roll);
+            if (!moves.Any())
+            {
+                return null;
+            }
+            
+            var selection = rnd.Next(0, moves.Count());
+            return moves[selection];
+        }
 
         private static (double score, Ply bestMove) Expectimax(Backgammon state, Tuple<short, short> roll, int depth, bool chance = false)
         {

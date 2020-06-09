@@ -63,7 +63,36 @@ namespace Backgammon.Game
 
         public double Utility()
         {
-            return 0;
+            if (MaxToMove())
+            {
+                return maxPlayer.Evaluate();
+            }
+            return minPlayer.Evaluate();
+        }
+
+        public bool ApplyMove(Ply ply)
+        {
+            Player player = maxToMove ? maxPlayer : minPlayer,
+                   opponent = maxToMove ? minPlayer : maxPlayer;
+
+            foreach (var move in ply.GetMoves())
+            {
+                var nTargets = GetNumOpponentCheckersOnTarget(opponent.Board, move.Checker, move.Pips);
+                if (nTargets > 1)
+                {
+                    throw new ArgumentException($"Move not allowed: {move}"); // TODO: Rollback
+                }
+                else if (nTargets == 1)
+                {
+                    HitOpponent(move.Pips, opponent, move.Checker);
+                }
+
+                player.Board = MoveChecker(player.Board, move.Checker, move.Pips);
+            }
+
+            LastMove = ply;
+
+            return player.IsFinished();
         }
 
         /// <summary>
@@ -76,6 +105,70 @@ namespace Backgammon.Game
             return new Backgammon(new Player(), new Player(), true, null);
         }
 
+        public Ply[] GetPossibleMoves(Tuple<short, short> roll)
+        {
+            short diceOne = roll.Item1, diceTwo = roll.Item2;
+
+            Player player = maxToMove ? maxPlayer : minPlayer,
+                   opponent = maxToMove ? minPlayer : maxPlayer;
+
+            // Keep track of plies to ignore duplicates by means of different move order
+            var expansion = new HashSet<Ply>();
+
+            foreach (var firstCheckerToMove in FindOccupiedPoints(player.Board))
+            {
+                Player opponentAfterFirstMove = opponent.Clone();
+
+                short nTarget = GetNumOpponentCheckersOnTarget(opponentAfterFirstMove.Board, firstCheckerToMove, diceOne);
+                if (nTarget <= 1)
+                {
+                    if (nTarget == 1 /* blot */)
+                    {
+                        HitOpponent(diceOne, opponentAfterFirstMove, firstCheckerToMove);
+                    }
+                }
+                else
+                {
+                    // target point is already occupied by opponent
+                    continue;
+                }
+
+                short[] playerAfterFirstMove = MoveChecker(player.Board, firstCheckerToMove, diceOne);
+
+                var ply = new Ply();
+                ply.AddMove(firstCheckerToMove, diceOne);
+
+                var occupiedPointsAfterFirstMove = FindOccupiedPoints(playerAfterFirstMove);
+                if (occupiedPointsAfterFirstMove.Length == 0) // check if game is finished after first move
+                {
+                    return new Ply[] { ply }; // no need to find additional moves (pruning)
+                }
+
+                foreach (var secondCheckerToMove in occupiedPointsAfterFirstMove)
+                {
+                    Player opponentAfterSecondMove = opponentAfterFirstMove.Clone();
+
+                    nTarget = GetNumOpponentCheckersOnTarget(opponentAfterSecondMove.Board, secondCheckerToMove, diceTwo);
+                    if (nTarget <= 1)
+                    {
+                        if (nTarget == 1 /* blot */)
+                        {
+                            HitOpponent(diceTwo, opponentAfterSecondMove, secondCheckerToMove);
+                        }
+                    }
+                    else
+                    {
+                        // target point is already occupied by opponent
+                        continue;
+                    }
+
+                    expansion.Add(new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo)));
+                }
+            }
+
+            return expansion.ToArray();
+        }
+
         /// <summary>
         /// Returns a set of all possible successor states.
         /// </summary>
@@ -83,54 +176,91 @@ namespace Backgammon.Game
         /// <param name="diceTwo">Second dice value.</param>
         public IEnumerable<Backgammon> Expand(Tuple<short, short> roll)
         {
-            short diceOne = roll.Item1, diceTwo = roll.Item2;
-            short[] player = maxToMove ? maxPlayer.Board : minPlayer.Board,
-                    opponent = maxToMove ? minPlayer.Board : maxPlayer.Board;
+            Player player = maxToMove ? maxPlayer : minPlayer,
+                   opponent = maxToMove ? minPlayer : maxPlayer;
 
             // Holds all our successors
-            var successors = new List<Backgammon>(100);
-
-            // Keep track of plies to ignore duplicates by means of different move order
-            var expansion = new HashSet<Ply>();
-
-            //var perror = new Ply(new Move(9, 2), new Move(5, 4));
-            foreach (var firstCheckerToMove in FindOccupiedPoints(player))
+            var possibleMoves = GetPossibleMoves(roll);
+            var successors = new List<Backgammon>(possibleMoves.Length);
+            foreach (var move in possibleMoves)
             {
-                if (GetNumOpponentCheckersOnTarget(opponent, firstCheckerToMove, diceOne) > 0)
-                {
-                    continue;
-                }
-
-                short[] playerAfterFirstMove = MoveChecker(player, firstCheckerToMove, diceOne);
-
-                foreach (var secondCheckerToMove in FindOccupiedPoints(playerAfterFirstMove))
-                {
-                    if (GetNumOpponentCheckersOnTarget(opponent, secondCheckerToMove, diceTwo) > 0)
-                    {
-                        continue;
-                    }
-
-                    var ply = new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo));
-
-                    if (expansion.Add(ply))
-                    {
-                        short[] playerAfterSecondMove = MoveChecker(playerAfterFirstMove, secondCheckerToMove, diceTwo);
-
-                        if (MaxToMove())
-                        {
-                            successors.Add(new Backgammon(new Player(playerAfterSecondMove), new Player(opponent), false, ply));
-                        }
-                        else
-                        {
-                            successors.Add(new Backgammon(new Player(opponent), new Player(playerAfterSecondMove), true, ply));
-                        }
-
-                        // successors.Last().VerifyState();
-                    }
-                }
+                var bckg = new Backgammon(player.Clone(), opponent.Clone(), true, null);
+                bckg.ApplyMove(move); // apply move for current player
+                bckg.maxToMove = !bckg.maxToMove; // now switch player
+                successors.Add(bckg);
             }
 
             return successors;
+
+            ////var perror = new Ply(new Move(9, 2), new Move(5, 4));
+            //foreach (var firstCheckerToMove in FindOccupiedPoints(playerBoard))
+            //{
+            //    Player opponentAfterFirstMove = opponent.Clone();
+
+            //    short nTarget = GetNumOpponentCheckersOnTarget(opponentAfterFirstMove.Board, firstCheckerToMove, diceOne);
+            //    if (nTarget <= 1)
+            //    {
+            //        if (nTarget == 1 /* blot */)
+            //        {
+            //            HitOpponent(diceOne, opponentAfterFirstMove, firstCheckerToMove);
+            //        }
+            //    }
+            //    else
+            //    {
+            //        // target point is already occupied by opponent
+            //        continue;
+            //    }
+
+            //    short[] playerAfterFirstMove = MoveChecker(playerBoard, firstCheckerToMove, diceOne);
+
+            //    foreach (var secondCheckerToMove in FindOccupiedPoints(playerAfterFirstMove))
+            //    {
+            //        Player opponentAfterSecondMove = opponentAfterFirstMove.Clone();
+
+            //        nTarget = GetNumOpponentCheckersOnTarget(opponentAfterSecondMove.Board, secondCheckerToMove, diceTwo);
+            //        if (nTarget <= 1)
+            //        {
+            //            if (nTarget == 1 /* blot */)
+            //            {
+            //                HitOpponent(diceTwo, opponentAfterSecondMove, secondCheckerToMove);
+            //            }
+            //        }
+            //        else
+            //        {
+            //            // target point is already occupied by opponent
+            //            continue;
+            //        }
+
+            //        var ply = new Ply(new Move(firstCheckerToMove, diceOne), new Move(secondCheckerToMove, diceTwo));
+
+            //        if (expansion.Add(ply))
+            //        {
+            //            short[] playerAfterSecondMove = MoveChecker(playerAfterFirstMove, secondCheckerToMove, diceTwo);
+
+            //            if (MaxToMove())
+            //            {
+            //                successors.Add(new Backgammon(new Player(playerAfterSecondMove), opponentAfterSecondMove, false, ply));
+            //            }
+            //            else
+            //            {
+            //                successors.Add(new Backgammon(opponentAfterSecondMove, new Player(playerAfterSecondMove), true, ply));
+            //            }
+            //        }
+
+            //        // successors.Last().VerifyState();
+            //    }
+            //}
+
+
+        }
+
+        private static void HitOpponent(short pips, Player opponent, short checker)
+        {
+            opponent.Board[23 - (checker - pips)]--; // remove opponent checker from his board
+
+            // TODO: Uncomment
+
+            // opponent.Bar++; // and put it on his bar
         }
 
         /// <summary>
@@ -170,7 +300,7 @@ namespace Backgammon.Game
 
         private short GetNumOpponentCheckersOnTarget(short[] opponent, short playerIndex, short pips)
         {
-            if(playerIndex - pips < 0)
+            if (playerIndex - pips < 0)
             {
                 return 0;
             }
@@ -197,6 +327,17 @@ namespace Backgammon.Game
                     Debug.WriteLine(string.Join(' ', rev));
                 }
             }
+        }
+
+        public override string ToString()
+        {
+            string move = string.Empty;
+            if (LastMove != null)
+            {
+                move = LastMove.ToString() + "\n";
+            }
+
+            return $"{move}Max {maxPlayer}\nMin {minPlayer}";
         }
     }
 }
