@@ -7,8 +7,6 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Backgammon.Game", "Backgamm
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Backgammon.Core.Test", "Backgammon.Core.Tests\Backgammon.Core.Test.csproj", "{69C7525A-1A75-4735-8D46-8FC60381014C}"
 EndProject
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Backgammon.Forms", "Backgammon.Forms\Backgammon.Forms.csproj", "{FB6B9881-CACA-4B44-94AA-1DF0D8FF34B5}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -23,10 +21,6 @@ Global
 		{69C7525A-1A75-4735-8D46-8FC60381014C}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{69C7525A-1A75-4735-8D46-8FC60381014C}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{69C7525A-1A75-4735-8D46-8FC60381014C}.Release|Any CPU.Build.0 = Release|Any CPU
-		{FB6B9881-CACA-4B44-94AA-1DF0D8FF34B5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{FB6B9881-CACA-4B44-94AA-1DF0D8FF34B5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{FB6B9881-CACA-4B44-94AA-1DF0D8FF34B5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{FB6B9881-CACA-4B44-94AA-1DF0D8FF34B5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

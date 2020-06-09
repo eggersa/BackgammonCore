@@ -5,6 +5,8 @@ namespace Backgammon.Game
 {
     public class PlyEqualityComparer : EqualityComparer<Ply>
     {
+        public static PlyEqualityComparer Instance { get; } = new PlyEqualityComparer();
+
         public override bool Equals([AllowNull] Ply x, [AllowNull] Ply y)
         {
             if (x == null && y == null)
