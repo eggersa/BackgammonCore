@@ -80,7 +80,7 @@
         /// </returns>
         private double Evaluate(PlayerState player)
         {
-            return Evaluate(player, 0.5, 1, 1.5);
+            return Evaluate(player, 1, 0.5, 2);
         }
 
         /// <summary>
