@@ -11,6 +11,8 @@ namespace Backgammon.Game
 {
     class Program
     {
+        private const bool Interactive = false;
+
         static Program()
         {
             ConsoleErrorWriterDecorator.SetToConsole();
@@ -19,10 +21,17 @@ namespace Backgammon.Game
 
         static void Main(string[] args)
         {
-            // RunGameInteractive(game, new ExpectimaxBackgammonAgent(game));
             try
             {
-                MeasureAgentVsAgent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent());
+                if (Interactive)
+                {
+                    var game = Backgammon.Setup();
+                    RunGameInteractive(game, new ExpectimaxBackgammonAgent());
+                }
+                else
+                {
+                    MeasureAgentVsAgent(new ExpectimaxBackgammonAgent(), new RandomBackgammonAgent(), 10);
+                }
             }
             catch (Exception ex)
             {
@@ -30,9 +39,8 @@ namespace Backgammon.Game
             }
         }
 
-        private static void MeasureAgentVsAgent(IBackgammonAgent player, IBackgammonAgent adversary)
+        private static void MeasureAgentVsAgent(IBackgammonAgent player, IBackgammonAgent adversary, int iterations = 20)
         {
-            int iterations = 20;
             Console.WriteLine($"Running {player.Name} against {adversary.Name} with {iterations} iterations...");
 
             bool[] result = new bool[iterations];
@@ -162,7 +170,8 @@ namespace Backgammon.Game
                 return ReadMove(dice);
             }
 
-            if (point > 24 || point < 1)
+            // 25 for ckecker on bar
+            if (point > 25 || point < 1)
             {
                 Console.Error.Write("Move is not valid. ");
                 return ReadMove(dice);
