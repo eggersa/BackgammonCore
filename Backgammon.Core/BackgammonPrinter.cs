@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics.Tracing;
 using System.Linq;
 
 namespace Backgammon.Game
@@ -26,14 +27,14 @@ namespace Backgammon.Game
             var maxboardtop = new short[12];
             Array.Copy(game.MaxPlayer.Board, 12, maxboardtop, 0, 12);
 
-            PrintGameTop(maxboardtop, minboardtop);
+            PrintGameTop(maxboardtop, minboardtop, game.MaxPlayer.Bar);
 
             Console.WriteLine();
 
             var maxboardbottom = ArrayHelper.FastArrayCopy(game.MaxPlayer.Board, 12);
             var minboardbottom = ArrayHelper.FastArrayCopy(minboardreverse, 12);
 
-            PrintGameBottom(maxboardbottom, minboardbottom);
+            PrintGameBottom(maxboardbottom, minboardbottom, game.MinPlayer.Bar);
 
             PrintColor("|12|c11d|10|c09d|08|c07d|  |06|c05d|04|c03d|02|c01d|");
 
@@ -41,10 +42,12 @@ namespace Backgammon.Game
             Console.WriteLine();
         }
 
-        private static void PrintGameTop(short[] maxboardtop, short[] minboardtop)
+        private static void PrintGameTop(short[] maxboardtop, short[] minboardtop, short maxbar)
         {
+            int conter = 0;
             while (Math.Max(minboardtop.Max(), maxboardtop.Max()) > 0)
             {
+                
                 for (int i = 0; i < maxboardtop.Length; i++)
                 {
                     if (i == 6) Console.Write("   "); // middle bar
@@ -70,13 +73,28 @@ namespace Backgammon.Game
                         Console.Write("   ");
                     }
                 }
+
+                if (conter == 0)
+                {
+                    if (maxbar > 0)
+                    {
+                        Console.Write(" | ");
+                    }
+                    for (int i = 0; i < maxbar; i++)
+                    {
+                        PrintColor($" go");
+                    }
+                }
+
+                conter++;
                 Console.WriteLine();
             }
         }
 
-        private static void PrintGameBottom(short[] maxboardbottom, short[] minboardbottom)
+        private static void PrintGameBottom(short[] maxboardbottom, short[] minboardbottom, short minbar)
         {
             int max;
+            int counter = Math.Max(minboardbottom.Max(), maxboardbottom.Max()) - 1;
             while ((max = Math.Max(minboardbottom.Max(), maxboardbottom.Max())) > 0)
             {
                 for (int i = 11; i >= 0; i--)
@@ -104,6 +122,20 @@ namespace Backgammon.Game
                         Console.Write("   ");
                     }
                 }
+
+                if (counter == 0)
+                {
+                    if (minbar > 0)
+                    {
+                        Console.Write(" | ");
+                    }
+                    for (int i = 0; i < minbar; i++)
+                    {
+                        PrintColor($"rx");
+                    }
+                }
+
+                counter--;
                 Console.WriteLine();
             }
         }
