@@ -78,9 +78,7 @@ namespace Backgammon.Game
         /// </summary>
         public static Backgammon Setup()
         {
-            var bckg = new Backgammon(new PlayerState() { Name = "Max" }, new PlayerState() { Name = "Min" }, true, null);
-            bckg.actualGame = true;
-            return bckg;
+            return new Backgammon(new PlayerState() { Name = "Max" }, new PlayerState() { Name = "Min" }, true, null);
         }
 
         public bool ValidatePly(Ply ply, DiceRoll roll)
@@ -288,7 +286,7 @@ namespace Backgammon.Game
         {
             if (source == 24)
             {
-                player.Bar--;
+                player.Bar -= 1;
             }
             else
             {
