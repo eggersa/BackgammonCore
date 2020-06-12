@@ -25,8 +25,7 @@ namespace Backgammon.Game
             {
                 if (Interactive)
                 {
-                    var game = Backgammon.Setup();
-                    RunGameInteractive(game, new ExpectimaxBackgammonAgent());
+                    RunGameInteractive(Backgammon.Setup(), new ExpectimaxBackgammonAgent());
                 }
                 else
                 {
