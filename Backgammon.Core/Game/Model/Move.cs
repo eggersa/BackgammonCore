@@ -1,23 +1,36 @@
 ﻿namespace Backgammon.Game
 {
+    /// <summary>
+    /// Specified a move of one checker from a source point to a target point.
+    /// </summary>
     public class Move
     {
-        public bool Bar { get; private set; }
+        /// <summary>
+        /// Gets the source point from where to move a checkers.
+        /// </summary>
+        public short Source { get; private set; }
 
-        public short Checker { get; private set; }
+        /// <summary>
+        /// Gets the number of pips to move the checker in the
+        /// direction of the home board.
+        /// The other direction is not allowed.
+        /// </summary>
+        public short Dice { get; private set; }
 
-        public short Pips { get; private set; }
-
-        public Move(short playerIndex, short pips, bool bar = false)
+        /// <summary>
+        /// Initializes a new instance of the <see cref="Move"/> class.
+        /// </summary>
+        /// <param name="source">The source point.</param>
+        /// <param name="dice">The dice value specifying the target point.</param>
+        public Move(short source, short dice)
         {
-            Checker = playerIndex;
-            Pips = pips;
-            Bar = bar;
+            Source = source;
+            Dice = dice;
         }
 
         public override int GetHashCode()
         {
-            int hCode = Pips ^ Checker;
+            int hCode = Dice ^ Source;
             return hCode.GetHashCode();
         }
 
@@ -30,7 +43,7 @@
 
             if(obj is Move otherMove)
             {
-                return Pips == otherMove.Pips && Checker == otherMove.Checker;
+                return Dice == otherMove.Dice && Source == otherMove.Source;
             }
 
             return false;
@@ -38,11 +51,11 @@
 
         public override string ToString()
         {
-            if(Checker - Pips < 0)
+            if(Source - Dice < 0)
             {
-                return $"Bear off {Checker + 1}";
+                return $"Bear off {Source + 1}";
             }
-            return $"From {Checker + 1} to {Checker - Pips + 1}";
+            return $"From {Source + 1} to {Source - Dice + 1}";
         }
     }
 }

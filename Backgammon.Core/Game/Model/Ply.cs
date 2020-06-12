@@ -13,6 +13,7 @@ namespace Backgammon.Game
     {
         // Moves are orderd to easier compare two plies.
         private readonly List<Move> moves = new List<Move>(2);
+        
         public static readonly Ply ZeroPly = new Ply();
 
         public Ply() { }
@@ -28,6 +29,10 @@ namespace Backgammon.Game
             AddMove(b);
         }
 
+        /// <summary>
+        /// Gets the number of bar moves. A move is a bar move if his applications
+        /// results in an enemy checker being hit.
+        /// </summary>
         public int CountBarMovements { get; private set; }
 
         public IEnumerable<Move> GetMoves()
@@ -39,12 +44,12 @@ namespace Backgammon.Game
         {
             VerifyAcces();
 
-            if (move.Checker == 24)
+            if (move.Source == 24)
             {
                 CountBarMovements++;
             }
 
-            if (moves.Any() && move.Pips < moves[0].Pips)
+            if (moves.Any() && move.Dice < moves[0].Dice)
             {
                 moves.Insert(0, move);
             }
@@ -59,6 +64,11 @@ namespace Backgammon.Game
             AddMove(new Move(playerIndex, pips));
         }
 
+        /// <summary>
+        /// Checks if two plies are the same.
+        /// </summary>
+        /// <param name="other">The second ply.</param>
+        /// <returns>True if the current ply is the same as the second ply; otherwise false.</returns>
         public bool Same(Ply other)
         {
             if (other == null || other.moves.Count != moves.Count)
@@ -77,6 +87,10 @@ namespace Backgammon.Game
             return true;
         }
 
+        /// <summary>
+        /// Checks if the current ply contains only one move.
+        /// </summary>
+        /// <returns>True if the current ply contains only one move</returns>
         public bool IsSingleMove()
         {
             return moves.Count == 1;

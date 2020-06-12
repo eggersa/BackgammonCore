@@ -11,7 +11,7 @@ namespace Backgammon.Game
 {
     class Program
     {
-        private const bool Interactive = false;
+        private const bool Interactive = true;
 
         static Program()
         {

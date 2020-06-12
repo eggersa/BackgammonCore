@@ -11,9 +11,9 @@ namespace Backgammon.Game
     {
         public static void Print(Backgammon game)
         {
-            if(game.LastMove != null)
+            if(game.LastPly != null)
             {
-                Console.WriteLine($"Previous player move is {game.LastMove}");
+                Console.WriteLine($"Previous player move is {game.LastPly}");
                 Console.WriteLine();
             }
 

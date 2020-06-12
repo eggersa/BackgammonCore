@@ -15,7 +15,7 @@
             if (state.IsTerminal() || depth == 0)
             {
                 // Return the heuristic value of node
-                return (Evaluate(state.GetCurrentPlayer()), state.LastMove);
+                return (Evaluate(state.GetCurrentPlayer()), state.LastPly);
             }
 
             double bestScore = 0;
@@ -50,7 +50,7 @@
                     if (score > bestScore)
                     {
                         bestScore = score;
-                        bestMove = child.LastMove;
+                        bestMove = child.LastPly;
                     }
                 }
             }
@@ -64,7 +64,7 @@
                     if (score < bestScore)
                     {
                         bestScore = score;
-                        bestMove = child.LastMove;
+                        bestMove = child.LastPly;
                     }
                 }
             }

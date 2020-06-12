@@ -51,7 +51,7 @@ namespace Backgammon.Game
             MinPlayer = minPlayer;
             this.maxToMove = maxToMove;
 
-            LastMove = move;
+            LastPly = move;
         }
 
         /// <summary>
@@ -65,9 +65,9 @@ namespace Backgammon.Game
         public PlayerState MinPlayer { get; private set; }
 
         /// <summary>
-        /// Gets the last move that lead to the current state or null of the state is initial.
+        /// Gets the last ply that lead to the current state or null of the state is initial.
         /// </summary>
-        public Ply LastMove { get; private set; }
+        public Ply LastPly { get; private set; }
 
         /// <summary>
         /// Checks if the maximizing player can move.
@@ -200,7 +200,7 @@ namespace Backgammon.Game
 
             foreach (var move in ply.GetMoves())
             {
-                var nTargets = GetNumOpponentCheckersOnTarget(opponent.Board, move.Checker, move.Pips);
+                var nTargets = GetNumOpponentCheckersOnTarget(opponent.Board, move.Source, move.Dice);
                 if (nTargets > 1) // check if target is open
                 {
                     if (rollbackOnError)
@@ -215,13 +215,13 @@ namespace Backgammon.Game
                 }
                 else if (nTargets == 1)
                 {
-                    ApplyHitOnOpponent(opponent, move.Checker, move.Pips);
+                    ApplyHitOnOpponent(opponent, move.Source, move.Dice);
                 }
 
-                MoveCheckerOnPlayer(player, move.Checker, move.Pips);
+                MoveCheckerOnPlayer(player, move.Source, move.Dice);
             }
 
-            LastMove = ply;
+            LastPly = ply;
 
             // update players
             MaxPlayer.Board = (maxToMove ? player : opponent).Board;
@@ -318,10 +318,10 @@ namespace Backgammon.Game
         /// <param name="move">The move to execute.</param>
         private void ExecuteMove(PlayerState player, PlayerState opponent, Move move)
         {
-            MoveCheckerOnPlayer(player, move.Checker, move.Pips);
-            if (IsTargetBlot(opponent, move.Checker, move.Pips))
+            MoveCheckerOnPlayer(player, move.Source, move.Dice);
+            if (IsTargetBlot(opponent, move.Source, move.Dice))
             {
-                ApplyHitOnOpponent(opponent, move.Checker, move.Pips);
+                ApplyHitOnOpponent(opponent, move.Source, move.Dice);
             }
         }
 
@@ -443,7 +443,7 @@ namespace Backgammon.Game
                 {
                     var rev = MinPlayer.Board.Reverse();
 
-                    Debug.WriteLine($"Invalid move: {LastMove}");
+                    Debug.WriteLine($"Invalid move: {LastPly}");
                     Debug.WriteLine(string.Join(' ', MaxPlayer));
                     Debug.WriteLine(string.Join(' ', rev));
                 }
@@ -457,9 +457,9 @@ namespace Backgammon.Game
         public override string ToString()
         {
             string move = string.Empty;
-            if (LastMove != null)
+            if (LastPly != null)
             {
-                move = LastMove.ToString() + "\n";
+                move = LastPly.ToString() + "\n";
             }
 
             return $"{move}Max {MaxPlayer}\nMin {MinPlayer}";
